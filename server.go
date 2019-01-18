@@ -2563,7 +2563,7 @@ func newServer(listenAddrs []string, db database.DB, chainParams *chaincfg.Param
 		BlockByHash:      bm.chain.BlockByHash,
 		BestHash:         func() *chainhash.Hash { return &bm.chain.BestSnapshot().Hash },
 		BestHeight:       func() int64 { return bm.chain.BestSnapshot().Height },
-		CalcSequenceLock: bm.chain.CalcSequenceLock,
+		CalcSequenceLock: bm.chain.CalcSequenceLockOldSemantics,
 		SubsidyCache:     bm.chain.FetchSubsidyCache(),
 		SigCache:         s.sigCache,
 		PastMedianTime: func() time.Time {

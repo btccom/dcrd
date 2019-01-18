@@ -2890,7 +2890,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *dcrutil.B
 
 		for _, stx := range block.STransactions() {
 			sequenceLock, err := b.calcSequenceLock(node, stx,
-				view, true)
+				view, true, true)
 			if err != nil {
 				return err
 			}
@@ -2937,8 +2937,8 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *dcrutil.B
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.
 		for _, tx := range block.Transactions()[1:] {
-			sequenceLock, err := b.calcSequenceLock(node, tx,
-				view, true)
+			sequenceLock, err := b.calcSequenceLock(node, tx, view,
+				true, true)
 			if err != nil {
 				return err
 			}

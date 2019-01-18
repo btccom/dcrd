@@ -38,8 +38,12 @@ func isStakeBaseTx(tx *wire.MsgTx) bool {
 // calcSequenceLock computes the relative lock times for the passed transaction
 // from the point of view of the block node passed in as the first argument.
 //
+// The enforce old semantics parameter allows the caller to ensure the same
+// incorrect semantics that were present in previous versions of the software are
+// preserved.
+//
 // See the CalcSequenceLock comments for more details.
-func (b *BlockChain) calcSequenceLock(node *blockNode, tx *dcrutil.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
+func (b *BlockChain) calcSequenceLock(node *blockNode, tx *dcrutil.Tx, view *UtxoViewpoint, isActive, enforceOldSemantics bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
 	sequenceLock := &SequenceLock{MinHeight: -1, MinTime: -1}
@@ -61,6 +65,14 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *dcrutil.Tx, view *Utx
 		sequenceNum := txIn.Sequence
 		if sequenceNum&wire.SequenceLockTimeDisabled != 0 {
 			continue
+		}
+
+		// Enforce the incorrect semantics prior to the utxoset semantics
+		// reversal until a vote is conducted to change to the expected
+		// semantics.
+		if enforceOldSemantics {
+			str := "violates sequence lock consensus bug"
+			return sequenceLock, ruleError(ErrMissingTxOut, str)
 		}
 
 		utxo := view.LookupEntry(&txIn.PreviousOutPoint.Hash)
@@ -150,7 +162,19 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *dcrutil.Tx, view *Utx
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcSequenceLock(tx *dcrutil.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
 	b.chainLock.Lock()
-	seqLock, err := b.calcSequenceLock(b.bestChain.Tip(), tx, view, true)
+	seqLock, err := b.calcSequenceLock(b.bestChain.Tip(), tx, view, true, false)
+	b.chainLock.Unlock()
+	return seqLock, err
+}
+
+// CalcSequenceLockOldSemantics computes the minimum block height adn time after
+// which the passed transaction can be included into a block while satisfying
+// the relative lock times of all of its input sequence numbers while ensuring
+// the old incorrect semantics that were present in previous versions of the
+// software are preserved.
+func (b *BlockChain) CalcSequenceLockOldSemantics(tx *dcrutil.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
+	b.chainLock.Lock()
+	seqLock, err := b.calcSequenceLock(b.bestChain.Tip(), tx, view, true, true)
 	b.chainLock.Unlock()
 	return seqLock, err
 }

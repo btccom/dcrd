@@ -369,7 +369,7 @@ func TestCalcSequenceLock(t *testing.T) {
 		} else {
 			bc.chainLock.Lock()
 			seqLock, err = bc.calcSequenceLock(node, utilTx, view,
-				test.isActive)
+				test.isActive, false)
 			bc.chainLock.Unlock()
 		}
 		if err != nil {
